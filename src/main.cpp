@@ -1,9 +1,18 @@
 #include <Arduino.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <AsyncTCP.h>
 #include <FS.h>
 #include <LittleFS.h>
+
+const int oneWireBus = 4;    // DS18B20 on pin D4
+
+// Setup a oneWire instance to communicate with any OneWire devices
+OneWire oneWire(oneWireBus);
+
+DallasTemperature sensors(&oneWire);
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
@@ -120,9 +129,14 @@ void setup() {
   // Serial port for debugging purposes
   Serial.begin(115200);
 
+  sensors.begin();
+  
+
+
+
   initLittleFS();
 
-  
+  Serial.println(ip);
   
   // Load values saved in LittleFS
   ssid = readFile(LittleFS, ssidPath);
@@ -207,5 +221,10 @@ void setup() {
 }
 
 void loop() {
+  sensors.requestTemperatures(); 
+  float temperatureC = sensors.getTempCByIndex(0);
+  Serial.print(temperatureC);
+  Serial.println("ºC");
+  delay(5000);
 
 }
