@@ -119,8 +119,13 @@ bool initWiFi() {
       return false;
     }
   }
-
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("Connected to the WiFi network");
+  }
+  Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
+  Serial.print("Gateway: ");
+  Serial.println(WiFi.gatewayIP());
   return true;
 }
 
@@ -130,14 +135,8 @@ void setup() {
   Serial.begin(115200);
 
   sensors.begin();
-  
-
-
 
   initSPIFFS();
-
-  Serial.println("Printing IP");
-  Serial.println(ip);
   
   // Load values saved in SPIFFS
   ssid = readFilesFS(SPIFFS, ssidPath);
