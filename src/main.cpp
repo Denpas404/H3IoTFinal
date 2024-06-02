@@ -1,18 +1,8 @@
 #include <Arduino.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <AsyncTCP.h>
-#include <SPIFFS.h>
-#include <FS.h>
-
-const int oneWireBus = 4;    // DS18B20 on pin D4
-
-// Setup a oneWire instance to communicate with any OneWire devices
-OneWire oneWire(oneWireBus);
-
-DallasTemperature sensors(&oneWire);
+#include "SPIFFS.h"
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
@@ -48,6 +38,12 @@ IPAddress subnet(255, 255, 0, 0);
 unsigned long previousMillis = 0;
 const long interval = 10000;  // interval to wait for Wi-Fi connection (milliseconds)
 
+// Set LED GPIO
+const int ledPin = 2;
+// Stores LED state
+
+String ledState;
+
 // Initialize SPIFFS
 void initSPIFFS() {
   if (!SPIFFS.begin(true)) {
@@ -57,7 +53,7 @@ void initSPIFFS() {
 }
 
 // Read File from SPIFFS
-String readFilesFS(fs::FS &fs, const char * path){
+String readFileFS(fs::FS &fs, const char * path){
   Serial.printf("Reading file: %s\r\n", path);
 
   File file = fs.open(path);
@@ -75,7 +71,7 @@ String readFilesFS(fs::FS &fs, const char * path){
 }
 
 // Write file to SPIFFS
-void writeFilesFS(fs::FS &fs, const char * path, const char * message){
+void writeFileFS(fs::FS &fs, const char * path, const char * message){
   Serial.printf("Writing file: %s\r\n", path);
 
   File file = fs.open(path, FILE_WRITE);
@@ -119,30 +115,40 @@ bool initWiFi() {
       return false;
     }
   }
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("Connected to the WiFi network");
-  }
-  Serial.print("IP Address: ");
+
   Serial.println(WiFi.localIP());
-  Serial.print("Gateway: ");
-  Serial.println(WiFi.gatewayIP());
   return true;
 }
 
+// Replaces placeholder with LED state value
+String processor(const String& var) {
+  if(var == "STATE") {
+    if(digitalRead(ledPin)) {
+      ledState = "ON";
+    }
+    else {
+      ledState = "OFF";
+    }
+    return ledState;
+  }
+  return String();
+}
 
 void setup() {
   // Serial port for debugging purposes
   Serial.begin(115200);
 
-  sensors.begin();
-
   initSPIFFS();
+
+  // Set GPIO 2 as an OUTPUT
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
   
   // Load values saved in SPIFFS
-  ssid = readFilesFS(SPIFFS, ssidPath);
-  pass = readFilesFS(SPIFFS, passPath);
-  ip = readFilesFS(SPIFFS, ipPath);
-  gateway = readFilesFS (SPIFFS, gatewayPath);
+  ssid = readFileFS(SPIFFS, ssidPath);
+  pass = readFileFS(SPIFFS, passPath);
+  ip = readFileFS(SPIFFS, ipPath);
+  gateway = readFileFS (SPIFFS, gatewayPath);
   Serial.println(ssid);
   Serial.println(pass);
   Serial.println(ip);
@@ -151,9 +157,22 @@ void setup() {
   if(initWiFi()) {
     // Route for root / web page
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/index.html", "text/html", false);
+      request->send(SPIFFS, "/index.html", "text/html", false, processor);
     });
-    server.serveStatic("/", SPIFFS, "/");      
+    server.serveStatic("/", SPIFFS, "/");
+    
+    // Route to set GPIO state to HIGH
+    server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request) {
+      digitalWrite(ledPin, HIGH);
+      request->send(SPIFFS, "/index.html", "text/html", false, processor);
+    });
+
+    // Route to set GPIO state to LOW
+    server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request) {
+      digitalWrite(ledPin, LOW);
+      request->send(SPIFFS, "/index.html", "text/html", false, processor);
+    });
+    server.begin();
   }
   else {
     // Connect to Wi-Fi network with SSID and password
@@ -183,7 +202,7 @@ void setup() {
             Serial.print("SSID set to: ");
             Serial.println(ssid);
             // Write file to save value
-            writeFilesFS(SPIFFS, ssidPath, ssid.c_str());
+            writeFileFS(SPIFFS, ssidPath, ssid.c_str());
           }
           // HTTP POST pass value
           if (p->name() == PARAM_INPUT_2) {
@@ -191,7 +210,7 @@ void setup() {
             Serial.print("Password set to: ");
             Serial.println(pass);
             // Write file to save value
-            writeFilesFS(SPIFFS, passPath, pass.c_str());
+            writeFileFS(SPIFFS, passPath, pass.c_str());
           }
           // HTTP POST ip value
           if (p->name() == PARAM_INPUT_3) {
@@ -199,7 +218,7 @@ void setup() {
             Serial.print("IP Address set to: ");
             Serial.println(ip);
             // Write file to save value
-            writeFilesFS(SPIFFS, ipPath, ip.c_str());
+            writeFileFS(SPIFFS, ipPath, ip.c_str());
           }
           // HTTP POST gateway value
           if (p->name() == PARAM_INPUT_4) {
@@ -207,7 +226,7 @@ void setup() {
             Serial.print("Gateway set to: ");
             Serial.println(gateway);
             // Write file to save value
-            writeFilesFS(SPIFFS, gatewayPath, gateway.c_str());
+            writeFileFS(SPIFFS, gatewayPath, gateway.c_str());
           }
           //Serial.printf("POST[%s]: %s\n", p->name().c_str(), p->value().c_str());
         }
@@ -221,10 +240,5 @@ void setup() {
 }
 
 void loop() {
-  // sensors.requestTemperatures(); 
-  // float temperatureC = sensors.getTempCByIndex(0);
-  // Serial.print(temperatureC);
-  // Serial.println("ºC");
-  // delay(5000);
 
 }
