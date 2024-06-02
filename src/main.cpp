@@ -6,7 +6,6 @@
 #include <AsyncTCP.h>
 #include <SPIFFS.h>
 #include <FS.h>
-#include <SPIFFS.h>
 
 const int oneWireBus = 4;    // DS18B20 on pin D4
 
