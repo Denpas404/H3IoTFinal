@@ -4,8 +4,9 @@
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <AsyncTCP.h>
+#include <SPIFFS.h>
 #include <FS.h>
-#include <LittleFS.h>
+#include <SPIFFS.h>
 
 const int oneWireBus = 4;    // DS18B20 on pin D4
 
@@ -48,16 +49,16 @@ IPAddress subnet(255, 255, 0, 0);
 unsigned long previousMillis = 0;
 const long interval = 10000;  // interval to wait for Wi-Fi connection (milliseconds)
 
-// Initialize LittleFS
-void initLittleFS() {
-  if (!LittleFS.begin(true)) {
-    Serial.println("An error has occurred while mounting LittleFS");
+// Initialize SPIFFS
+void initSPIFFS() {
+  if (!SPIFFS.begin(true)) {
+    Serial.println("An error has occurred while mounting SPIFFS");
   }
-  Serial.println("LittleFS mounted successfully");
+  Serial.println("SPIFFS mounted successfully");
 }
 
-// Read File from LittleFS
-String readFile(fs::FS &fs, const char * path){
+// Read File from SPIFFS
+String readFilesFS(fs::FS &fs, const char * path){
   Serial.printf("Reading file: %s\r\n", path);
 
   File file = fs.open(path);
@@ -74,8 +75,8 @@ String readFile(fs::FS &fs, const char * path){
   return fileContent;
 }
 
-// Write file to LittleFS
-void writeFile(fs::FS &fs, const char * path, const char * message){
+// Write file to SPIFFS
+void writeFilesFS(fs::FS &fs, const char * path, const char * message){
   Serial.printf("Writing file: %s\r\n", path);
 
   File file = fs.open(path, FILE_WRITE);
@@ -134,15 +135,16 @@ void setup() {
 
 
 
-  initLittleFS();
+  initSPIFFS();
 
+  Serial.println("Printing IP");
   Serial.println(ip);
   
-  // Load values saved in LittleFS
-  ssid = readFile(LittleFS, ssidPath);
-  pass = readFile(LittleFS, passPath);
-  ip = readFile(LittleFS, ipPath);
-  gateway = readFile (LittleFS, gatewayPath);
+  // Load values saved in SPIFFS
+  ssid = readFilesFS(SPIFFS, ssidPath);
+  pass = readFilesFS(SPIFFS, passPath);
+  ip = readFilesFS(SPIFFS, ipPath);
+  gateway = readFilesFS (SPIFFS, gatewayPath);
   Serial.println(ssid);
   Serial.println(pass);
   Serial.println(ip);
@@ -151,9 +153,9 @@ void setup() {
   if(initWiFi()) {
     // Route for root / web page
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(LittleFS, "/index.html", "text/html", false);
+      request->send(SPIFFS, "/index.html", "text/html", false);
     });
-    server.serveStatic("/", LittleFS, "/");      
+    server.serveStatic("/", SPIFFS, "/");      
   }
   else {
     // Connect to Wi-Fi network with SSID and password
@@ -167,10 +169,10 @@ void setup() {
 
     // Web Server Root URL
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-      request->send(LittleFS, "/wifimanager.html", "text/html");
+      request->send(SPIFFS, "/wifimanager.html", "text/html");
     });
     
-    server.serveStatic("/", LittleFS, "/");
+    server.serveStatic("/", SPIFFS, "/");
     
     server.on("/", HTTP_POST, [](AsyncWebServerRequest *request) {
       int params = request->params();
@@ -183,7 +185,7 @@ void setup() {
             Serial.print("SSID set to: ");
             Serial.println(ssid);
             // Write file to save value
-            writeFile(LittleFS, ssidPath, ssid.c_str());
+            writeFilesFS(SPIFFS, ssidPath, ssid.c_str());
           }
           // HTTP POST pass value
           if (p->name() == PARAM_INPUT_2) {
@@ -191,7 +193,7 @@ void setup() {
             Serial.print("Password set to: ");
             Serial.println(pass);
             // Write file to save value
-            writeFile(LittleFS, passPath, pass.c_str());
+            writeFilesFS(SPIFFS, passPath, pass.c_str());
           }
           // HTTP POST ip value
           if (p->name() == PARAM_INPUT_3) {
@@ -199,7 +201,7 @@ void setup() {
             Serial.print("IP Address set to: ");
             Serial.println(ip);
             // Write file to save value
-            writeFile(LittleFS, ipPath, ip.c_str());
+            writeFilesFS(SPIFFS, ipPath, ip.c_str());
           }
           // HTTP POST gateway value
           if (p->name() == PARAM_INPUT_4) {
@@ -207,7 +209,7 @@ void setup() {
             Serial.print("Gateway set to: ");
             Serial.println(gateway);
             // Write file to save value
-            writeFile(LittleFS, gatewayPath, gateway.c_str());
+            writeFilesFS(SPIFFS, gatewayPath, gateway.c_str());
           }
           //Serial.printf("POST[%s]: %s\n", p->name().c_str(), p->value().c_str());
         }
@@ -221,10 +223,10 @@ void setup() {
 }
 
 void loop() {
-  sensors.requestTemperatures(); 
-  float temperatureC = sensors.getTempCByIndex(0);
-  Serial.print(temperatureC);
-  Serial.println("ºC");
-  delay(5000);
+  // sensors.requestTemperatures(); 
+  // float temperatureC = sensors.getTempCByIndex(0);
+  // Serial.print(temperatureC);
+  // Serial.println("ºC");
+  // delay(5000);
 
 }
