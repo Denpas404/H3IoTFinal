@@ -11,11 +11,11 @@
 #include "SD_MMC.h"
 #include "time.h"
 
-const char* ntpServer = "pool.ntp.org";
-const long  gmtOffset_sec = 3600;
-const int   daylightOffset_sec = 3600;
+const char *ntpServer = "pool.ntp.org";
+const long gmtOffset_sec = 3600;
+const int daylightOffset_sec = 3600;
 
-void printLocalTime();
+String getLocalTime();
 
 // Pin definitions for SD card
 #define SD_MMC_CMD 38 // Please do not modify it.
@@ -136,7 +136,7 @@ bool initWiFi()
 
   WiFi.mode(WIFI_STA);
   localIP.fromString(ip.c_str());
-  localGateway.fromString(gateway.c_str());  
+  localGateway.fromString(gateway.c_str());
 
   if (!WiFi.config(localIP, localGateway, subnet, dns))
   {
@@ -192,6 +192,11 @@ void setup()
   Serial.println(pass);
   Serial.println(ip);
   Serial.println(gateway);
+
+  ssid = "HuluBulu";
+  pass = "Sasser3012";
+  ip = "192.168.1.111";
+  gateway = "192.168.1.1";
 
   if (initWiFi())
   {
@@ -273,61 +278,73 @@ void setup()
     server.begin();
   }
 
-
-    // Init and get the time
+  // Init and get the time
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  printLocalTime();
-  
+  getLocalTime();
 
+  // Initialize SD card
+  SD_MMC.setPins(SD_MMC_CLK, SD_MMC_CMD, SD_MMC_D0);
+    if (!SD_MMC.begin("/sdcard", true, true, SDMMC_FREQ_DEFAULT, 5)) {
+      Serial.println("Card Mount Failed");
+      return;
+    }
+
+  
+  File dataFile = SD_MMC.open("/data/datalog.csv", FILE_WRITE);
+  if (dataFile) {
+    Serial.println("CSV file created.");
+    dataFile.close();
+  } else {
+    Serial.println("Error creating CSV file.");
+  }
+
+  listDir(SD_MMC, "/", 1);
 
 } // end setup
 
-
-
 void loop()
 {
+  // unsigned long currentTime = millis();
 
+  // // Check for temperature reading interval
+  // if (currentTime - lastReadingTime >= readingInterval)
+  // {
+  //   lastReadingTime = currentTime;
 
-  unsigned long currentTime = millis();
+  //   sensors.requestTemperatures(); // Request temperature reading
+  //   float currentTemp = sensors.getTempCByIndex(0);
 
-  // Check for temperature reading interval
-  if (currentTime - lastReadingTime >= readingInterval)
-  {
-    lastReadingTime = currentTime;
+  //   averageTemp = (averageTemp * (iterations - 1) + currentTemp) / iterations;
+  //   iterations++;
 
-    sensors.requestTemperatures(); // Request temperature reading
-    float currentTemp = sensors.getTempCByIndex(0);
+  //   Serial.print("Current Temp: ");
+  //   Serial.print(currentTemp);
+  //   Serial.println(" C - " + getLocalTime());
+  // }
 
-    averageTemp = (averageTemp * (iterations - 1) + currentTemp) / iterations;
-    iterations++;
+  // // Check for average temperature update interval
+  // if (currentTime - lastAverageTime >= averageInterval)
+  // {
+  //   lastAverageTime = currentTime;
 
-    Serial.print("Current Temp: ");
-    Serial.print(currentTemp);
-    Serial.print(" C - ");
-    printLocalTime();
-  }
-
-  // Check for average temperature update interval
-  if (currentTime - lastAverageTime >= averageInterval)
-  {
-    lastAverageTime = currentTime;
-
-    Serial.print("Average Temp: ");
-    Serial.print(averageTemp);
-    Serial.println(" C (past 30 sec)");
-
-    
-  }
+  //   Serial.print("Average Temp: ");
+  //   //Serial.print(averageTemp);
+  //   //Serial.println(" C - " + getLocalTime() + " Past 30 seconds");
+  //   String stringToSD = String(averageTemp)  + " - " + getLocalTime() + "\n";
+  //   Serial.println(stringToSD);
+//}
 }
 
-
-void printLocalTime(){
+String getLocalTime()
+{
   struct tm timeinfo;
-  if(!getLocalTime(&timeinfo)){
+  if (!getLocalTime(&timeinfo))
+  {
     Serial.println("Failed to obtain time");
-    return;
+    return String(""); // Return an empty String object
   }
-  char timeStringBuff[50];	
+  char timeStringBuff[50];
   strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", &timeinfo);
-  Serial.println(timeStringBuff);
+  //Serial.println(timeStringBuff);
+  return String(timeStringBuff); // Convert C-style string to String object
 }
