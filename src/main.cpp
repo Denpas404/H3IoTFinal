@@ -7,7 +7,28 @@
 #include <FS.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
-#include <NTPClient.h>
+#include "sd_read_write.h"
+#include "SD_MMC.h"
+#include "time.h"
+
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 3600;
+const int   daylightOffset_sec = 3600;
+
+void printLocalTime();
+
+// Pin definitions for SD card
+#define SD_MMC_CMD 38 // Please do not modify it.
+#define SD_MMC_CLK 39 // Please do not modify it.
+#define SD_MMC_D0 40  // Please do not modify it.
+
+// Data logging
+unsigned long lastReadingTime = 0;
+unsigned long lastAverageTime = 0;
+const unsigned long readingInterval = 5000;  // 5 seconds in milliseconds
+const unsigned long averageInterval = 30000; // 30 seconds in milliseconds
+float averageTemp = 0.0;
+int iterations = 1;
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
@@ -37,6 +58,7 @@ IPAddress localIP;
 IPAddress localGateway;
 // IPAddress localGateway(192, 168, 1, 1); //hardcoded
 IPAddress subnet(255, 255, 0, 0);
+IPAddress dns(8, 8, 8, 8);
 
 // Timer variables
 unsigned long previousMillis = 0;
@@ -112,11 +134,11 @@ bool initWiFi()
     return false;
   }
 
-  WiFi.mode(WIFI_STA);  
+  WiFi.mode(WIFI_STA);
   localIP.fromString(ip.c_str());
-  localGateway.fromString(gateway.c_str());
+  localGateway.fromString(gateway.c_str());  
 
-  if (!WiFi.config(localIP, localGateway, subnet))
+  if (!WiFi.config(localIP, localGateway, subnet, dns))
   {
     Serial.println("STA Failed to configure");
     return false;
@@ -137,18 +159,19 @@ bool initWiFi()
     }
   }
 
-  if (!MDNS.begin("esp32")) {
+  if (!MDNS.begin("esp32"))
+  {
     Serial.println("Error setting up MDNS responder!");
-    while (1) {
+    while (1)
+    {
       delay(1000);
     }
   }
-   
+
+  Serial.print("Connected to ");
   Serial.println(WiFi.localIP());
   return true;
 }
-
-
 
 void setup()
 {
@@ -249,13 +272,62 @@ void setup()
       ESP.restart(); });
     server.begin();
   }
-}
+
+
+    // Init and get the time
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  printLocalTime();
+  
+
+
+} // end setup
+
+
 
 void loop()
 {
-  sensors.requestTemperatures();
-  float temperatureC = sensors.getTempCByIndex(0);
-  Serial.print(temperatureC);
-  Serial.println("ºC");
-  vTaskDelay(10000);
+
+
+  unsigned long currentTime = millis();
+
+  // Check for temperature reading interval
+  if (currentTime - lastReadingTime >= readingInterval)
+  {
+    lastReadingTime = currentTime;
+
+    sensors.requestTemperatures(); // Request temperature reading
+    float currentTemp = sensors.getTempCByIndex(0);
+
+    averageTemp = (averageTemp * (iterations - 1) + currentTemp) / iterations;
+    iterations++;
+
+    Serial.print("Current Temp: ");
+    Serial.print(currentTemp);
+    Serial.print(" C - ");
+    printLocalTime();
+  }
+
+  // Check for average temperature update interval
+  if (currentTime - lastAverageTime >= averageInterval)
+  {
+    lastAverageTime = currentTime;
+
+    Serial.print("Average Temp: ");
+    Serial.print(averageTemp);
+    Serial.println(" C (past 30 sec)");
+
+    
+  }
+}
+
+
+void printLocalTime(){
+  struct tm timeinfo;
+  if(!getLocalTime(&timeinfo)){
+    Serial.println("Failed to obtain time");
+    return;
+  }
+  char timeStringBuff[50];	
+  strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", &timeinfo);
+  Serial.println(timeStringBuff);
 }
