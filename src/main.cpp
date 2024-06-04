@@ -10,6 +10,7 @@
 #include "sd_read_write.h"
 #include "SD_MMC.h"
 #include "time.h"
+#include <ArduinoJson.h>
 
 const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = 3600;
@@ -80,8 +81,11 @@ void writeFileFS(fs::FS &fs, const char *path, const char *message);
 String getLocalTime();
 void writeFileSD(String data);
 void readTemp();
+String getSensorData();
 
-void readFilSDDEBUG();
+// Debugging prototypes
+void readFileSDDEBUG();
+void resetFileSDDEBUG();
 
 void setup()
 {
@@ -103,6 +107,13 @@ void setup()
   Serial.println(ip);
   Serial.println(gateway);
 
+  // Default values for debugging
+  ssid = "E308";
+  pass = "98806829";
+  ip = "192.168.0.111";
+  gateway = "192.168.0.1";
+  // Remember to delete above default values for production
+
   if (initWiFi())
   {
     // Route for root / web page
@@ -110,13 +121,17 @@ void setup()
               { request->send(SPIFFS, "/index.html", "text/html", false); });
     server.serveStatic("/", SPIFFS, "/");
 
-    // Route to set GPIO state to HIGH
-    server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request)
-              { request->send(SPIFFS, "/index.html", "text/html", false); });
+    server.on("/getData", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
+  String jsonData = getSensorData();
+  if (jsonData.isEmpty()) {
+    request->send(500, "text/plain", "Error reading sensor data");
+    return;
+  }
 
-    // Route to set GPIO state to LOW
-    server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request)
-              { request->send(SPIFFS, "/index.html", "text/html", false); });
+  request->send(200, "application/json", jsonData); 
+  });
+
     server.begin();
   }
   else
@@ -190,8 +205,9 @@ void setup()
 
   initSDCard();
 
-  //Debugging
-  readFilSDDEBUG();
+  // Debugging
+  //resetFileSDDEBUG(); // Reset file for debugging
+  readFileSDDEBUG();  // Read file for debugging
 
 } // end setup
 
@@ -339,11 +355,10 @@ String getLocalTime()
   if (!getLocalTime(&timeinfo))
   {
     Serial.println("Failed to obtain time");
-    return String(""); // Return an empty String object
+    return "Failed to obtain time";
   }
   char timeStringBuff[50];
   strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", &timeinfo);
-  // Serial.println(timeStringBuff);
   return String(timeStringBuff); // Convert C-style string to String object
 }
 
@@ -354,7 +369,7 @@ void writeFileSD(String data)
   File file = SD_MMC.open("/data/datalog.csv", FILE_APPEND);
   if (!file)
   {
-    Serial.println("Failed to open file for writing");    
+    Serial.println("Failed to open file for writing");
   }
   if (file.print(data))
   {
@@ -385,7 +400,7 @@ void readTemp()
 
     Serial.print("Current Temp: ");
     Serial.print(currentTemp);
-    Serial.println(" C - " + getLocalTime());
+    Serial.println(" C - " + getLocalTime() + "\n");
   }
 
   // Check for average temperature update interval
@@ -394,17 +409,52 @@ void readTemp()
     lastAverageTime = currentTime;
 
     Serial.print("Average Temp: ");
-    //Serial.print(averageTemp);
-    //Serial.println(" C - " + getLocalTime() + " Past 30 seconds");
-    String stringToSD = String(averageTemp)  + " - " + getLocalTime() + "\n";
+    // Serial.print(averageTemp);
+    // Serial.println(" C - " + getLocalTime() + " Past 30 seconds");
+    String stringToSD = String(averageTemp) + "," + getLocalTime() + "\n";
     Serial.println(stringToSD);
     writeFileSD(stringToSD);
-    
   }
 }
 
+String getSensorData()
+{
+  File file = SD_MMC.open("/data/datalog.csv");
+  if (!file || file.isDirectory())
+  {
+    Serial.println("Failed to open file for reading");
+    return ""; // Or return an error JSON if preferred
+  }
+
+JsonDocument doc; // Adjust document size as needed
+
+  JsonArray dataArray = doc.createNestedArray("data");
+
+  String line;
+  while ((line = file.readStringUntil('\n')) != "")
+  {
+    // Split line into data points (on comma separation) store as string temp and date
+    int commaIndex = line.indexOf(',');
+    //split after comma until /n
+    String tempStr = line.substring(0, commaIndex);
+    String dateStr = line.substring(commaIndex + 1, line.length() - 1);
+
+    // Add data to JSON array
+    JsonObject dataObj = dataArray.createNestedObject();
+    dataObj["temperature"] = tempStr.toFloat();
+    dataObj["date"] = dateStr;
+  }
+
+  file.close();
+
+  String jsonString;
+  serializeJson(doc, jsonString);
+  return jsonString;
+}
+
 // Read file from SD card ONLY FOR DEBUGGING
-void readFilSDDEBUG(){
+void readFileSDDEBUG()
+{
   File file = SD_MMC.open("/data/datalog.csv");
   if (!file || file.isDirectory())
   {
@@ -420,3 +470,22 @@ void readFilSDDEBUG(){
   file.close();
 }
 
+// Reset file from SD card ONLY FOR DEBUGGING
+void resetFileSDDEBUG()
+{
+  File file = SD_MMC.open("/data/datalog.csv", FILE_WRITE);
+  if (!file)
+  {
+    Serial.println("Failed to open file for writing");
+    return;
+  }
+  if (file.print(""))
+  {
+    Serial.println("File cleared");
+  }
+  else
+  {
+    Serial.println("Write failed");
+  }
+  file.close();
+}

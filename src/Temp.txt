@@ -1,0 +1,18 @@
+src/main.cpp: In function 'String getSensorData()':
+src/main.cpp:431:53: warning: 'ArduinoJson::V704PB2::JsonArray ArduinoJson::V704PB2::JsonDocument::createNestedArray(TChar*) [with TChar = const char]' is deprecated: use doc[key].to<JsonArray>() instead [-Wdeprecated-declarations]
+   JsonArray dataArray = doc.createNestedArray("data");
+                                                     ^
+In file included from lib/ArduinoJson-7.0.4/src/ArduinoJson.hpp:33,
+                 from lib/ArduinoJson-7.0.4/src/ArduinoJson.h:9,
+                 from src/main.cpp:13:
+lib/ArduinoJson-7.0.4/src/ArduinoJson/Document/JsonDocument.hpp:305:13: note: declared here
+   JsonArray createNestedArray(TChar* key) {
+             ^~~~~~~~~~~~~~~~~
+src/main.cpp:448:55: warning: 'ArduinoJson::V704PB2::JsonObject ArduinoJson::V704PB2::JsonArray::createNestedObject() const' is deprecated: use add<JsonObject>() instead [-Wdeprecated-declarations]
+     JsonObject dataObj = dataArray.createNestedObject();
+                                                       ^
+In file included from lib/ArduinoJson-7.0.4/src/ArduinoJson.hpp:53,
+                 from lib/ArduinoJson-7.0.4/src/ArduinoJson.h:9,
+                 from src/main.cpp:13:
+lib/ArduinoJson-7.0.4/src/ArduinoJson/compatibility.hpp:140:19: note: declared here
+ inline JsonObject JsonArray::createNestedObject() const {
