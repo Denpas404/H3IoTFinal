@@ -5,8 +5,8 @@
 .vscode/ipch
 
 # Ignore ip.txt in data folder
-data/ssid.txt
-data/pass.txt
-data/ip.txt
-data/ssid.txt
-data/gateway.txt
+# data/ssid.txt
+# data/pass.txt
+# data/ip.txt
+# data/ssid.txt
+# data/gateway.txt
