@@ -115,11 +115,6 @@ void setup()
   // gateway = "192.168.0.1";
   // Remember to delete above default values for production
 
-  // ssid = "HuluBulu";
-  // pass = "Sasser3012";
-  // ip = "192.168.1.111";
-  // gateway = "192.168.1.1";
-
   if (initWiFi())
   {
     // Route for root / web page
