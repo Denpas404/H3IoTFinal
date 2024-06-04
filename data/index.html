@@ -1,38 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Temperatur</title>
-    <link rel="stylesheet" type="text/css" href="style.css">
-    <script src="https://code.highcharts.com/highcharts.js"></script>   
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Temperatur</title>
+        <link rel="stylesheet" type="text/css" href="style.css">
+        <script src="https://code.highcharts.com/highcharts.js"></script>   
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-</head>
-
-<body data-bs-theme="dark">
-    <nav class="navbar bg-body-tertiary fixed-top" data-bs-theme="dark" >
-        <div class="container-fluid">
-            <h3 class="navbar-brand" href="#">Temperatur</h3>
-            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar"
+    </head>
+    
+    <body data-bs-theme="dark">
+        <nav class="navbar bg-body-tertiary fixed-top" data-bs-theme="dark" >
+            <div class="container-fluid">
+                <h3 class="navbar-brand" href="#">Temperatur</h3>
+                <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar"
                 aria-controls="offcanvasNavbar" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar"
-                aria-labelledby="offcanvasNavbarLabel">
-                <div class="offcanvas-header">
-                    <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Settings</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-                </div>
-                <div class="offcanvas-body">
-                    <ul class="navbar-nav justify-content-end flex-grow-1 pe-3">
-                        <li class="nav-item">
-                            <button class="btn btn-dark" value="clearnetwork">Clear Network Settings</button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="btn btn-dark" value="deletedata">Slet data fra CSV</button>
-                        </li>
+            aria-labelledby="offcanvasNavbarLabel">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+                <ul class="navbar-nav justify-content-end flex-grow-1 pe-3">
+                    <li class="nav-item">
+                        <button class="btn btn-dark" value="clearnetwork">Clear Network Settings</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-dark" value="deletedata">Slet data fra CSV</button>
+                    </li>
                         <li class="nav-item dropdown">
                             <button class="btn btn-dark" value="cleargraf">Clear Graf</button>
                         </li>
@@ -41,7 +41,7 @@
             </div>
         </div>
     </nav>
-
+    
     <div class="Main-Content">
         <div class="card" >
             <div class="card-body">
@@ -49,15 +49,15 @@
                 <br>    
                 <button>Refresh</button>
             </div>
+            
+            
+        </div>
         
-
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"></script>
         <script src="temperatur.js"></script>
-
-</body>
-
-</html>
+        
+    </body>
+    
+    </html>
