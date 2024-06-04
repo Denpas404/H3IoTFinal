@@ -15,8 +15,6 @@ const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = 3600;
 const int daylightOffset_sec = 3600;
 
-String getLocalTime();
-
 // Pin definitions for SD card
 #define SD_MMC_CMD 38 // Please do not modify it.
 #define SD_MMC_CLK 39 // Please do not modify it.
@@ -73,105 +71,17 @@ OneWire oneWire(oneWireBus);
 // Pass our oneWire reference to Dallas Temperature sensor
 DallasTemperature sensors(&oneWire);
 
-// Initialize SPIFFS
-void initSPIFFS()
-{
-  if (!SPIFFS.begin(true))
-  {
-    Serial.println("An error has occurred while mounting SPIFFS");
-  }
-  Serial.println("SPIFFS mounted successfully");
-}
+// Prototypes
+bool initWiFi();
+void initSPIFFS();
+void initSDCard();
+String readFileFS(fs::FS &fs, const char *path);
+void writeFileFS(fs::FS &fs, const char *path, const char *message);
+String getLocalTime();
+void writeFileSD(String data);
+void readTemp();
 
-// Read File from SPIFFS
-String readFileFS(fs::FS &fs, const char *path)
-{
-  Serial.printf("Reading file: %s\r\n", path);
-
-  File file = fs.open(path);
-  if (!file || file.isDirectory())
-  {
-    Serial.println("- failed to open file for reading");
-    return String();
-  }
-
-  String fileContent;
-  while (file.available())
-  {
-    fileContent = file.readStringUntil('\n');
-    break;
-  }
-  return fileContent;
-}
-
-// Write file to SPIFFS
-void writeFileFS(fs::FS &fs, const char *path, const char *message)
-{
-  Serial.printf("Writing file: %s\r\n", path);
-
-  File file = fs.open(path, FILE_WRITE);
-  if (!file)
-  {
-    Serial.println("- failed to open file for writing");
-    return;
-  }
-  if (file.print(message))
-  {
-    Serial.println("- file written");
-  }
-  else
-  {
-    Serial.println("- frite failed");
-  }
-}
-
-// Initialize WiFi
-bool initWiFi()
-{
-  if (ssid == "" || ip == "")
-  {
-    Serial.println("Undefined SSID or IP address.");
-    return false;
-  }
-
-  WiFi.mode(WIFI_STA);
-  localIP.fromString(ip.c_str());
-  localGateway.fromString(gateway.c_str());
-
-  if (!WiFi.config(localIP, localGateway, subnet, dns))
-  {
-    Serial.println("STA Failed to configure");
-    return false;
-  }
-  WiFi.begin(ssid.c_str(), pass.c_str());
-  Serial.println("Connecting to WiFi...");
-
-  unsigned long currentMillis = millis();
-  previousMillis = currentMillis;
-
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    currentMillis = millis();
-    if (currentMillis - previousMillis >= interval)
-    {
-      Serial.println("Failed to connect.");
-      return false;
-    }
-  }
-
-  if (!MDNS.begin("esp32"))
-  {
-    Serial.println("Error setting up MDNS responder!");
-    while (1)
-    {
-      delay(1000);
-    }
-  }
-
-  Serial.print("Connected to ");
-  Serial.println(WiFi.localIP());
-  return true;
-}
+void readFilSDDEBUG();
 
 void setup()
 {
@@ -192,11 +102,6 @@ void setup()
   Serial.println(pass);
   Serial.println(ip);
   Serial.println(gateway);
-
-  ssid = "HuluBulu";
-  pass = "Sasser3012";
-  ip = "192.168.1.111";
-  gateway = "192.168.1.1";
 
   if (initWiFi())
   {
@@ -280,61 +185,154 @@ void setup()
 
   // Init and get the time
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  getLocalTime();
+  Serial.println("Waiting for time");
+  Serial.println(getLocalTime());
 
-  // Initialize SD card
-  SD_MMC.setPins(SD_MMC_CLK, SD_MMC_CMD, SD_MMC_D0);
-    if (!SD_MMC.begin("/sdcard", true, true, SDMMC_FREQ_DEFAULT, 5)) {
-      Serial.println("Card Mount Failed");
-      return;
-    }
+  initSDCard();
 
-  
-  File dataFile = SD_MMC.open("/data/datalog.csv", FILE_WRITE);
-  if (dataFile) {
-    Serial.println("CSV file created.");
-    dataFile.close();
-  } else {
-    Serial.println("Error creating CSV file.");
-  }
-
-  listDir(SD_MMC, "/", 1);
+  //Debugging
+  readFilSDDEBUG();
 
 } // end setup
 
 void loop()
 {
-  // unsigned long currentTime = millis();
-
-  // // Check for temperature reading interval
-  // if (currentTime - lastReadingTime >= readingInterval)
-  // {
-  //   lastReadingTime = currentTime;
-
-  //   sensors.requestTemperatures(); // Request temperature reading
-  //   float currentTemp = sensors.getTempCByIndex(0);
-
-  //   averageTemp = (averageTemp * (iterations - 1) + currentTemp) / iterations;
-  //   iterations++;
-
-  //   Serial.print("Current Temp: ");
-  //   Serial.print(currentTemp);
-  //   Serial.println(" C - " + getLocalTime());
-  // }
-
-  // // Check for average temperature update interval
-  // if (currentTime - lastAverageTime >= averageInterval)
-  // {
-  //   lastAverageTime = currentTime;
-
-  //   Serial.print("Average Temp: ");
-  //   //Serial.print(averageTemp);
-  //   //Serial.println(" C - " + getLocalTime() + " Past 30 seconds");
-  //   String stringToSD = String(averageTemp)  + " - " + getLocalTime() + "\n";
-  //   Serial.println(stringToSD);
-//}
+  readTemp();
 }
 
+// Initialize SPIFFS
+void initSPIFFS()
+{
+  if (!SPIFFS.begin(true))
+  {
+    Serial.println("An error has occurred while mounting SPIFFS");
+  }
+  Serial.println("SPIFFS mounted successfully");
+}
+
+// Initialize WiFi
+bool initWiFi()
+{
+  if (ssid == "" || ip == "")
+  {
+    Serial.println("Undefined SSID or IP address.");
+    return false;
+  }
+
+  WiFi.mode(WIFI_STA);
+  localIP.fromString(ip.c_str());
+  localGateway.fromString(gateway.c_str());
+
+  if (!WiFi.config(localIP, localGateway, subnet, dns))
+  {
+    Serial.println("STA Failed to configure");
+    return false;
+  }
+  WiFi.begin(ssid.c_str(), pass.c_str());
+  Serial.println("Connecting to WiFi...");
+
+  unsigned long currentMillis = millis();
+  previousMillis = currentMillis;
+
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    currentMillis = millis();
+    if (currentMillis - previousMillis >= interval)
+    {
+      Serial.println("Failed to connect.");
+      return false;
+    }
+  }
+
+  if (!MDNS.begin("esp32"))
+  {
+    Serial.println("Error setting up MDNS responder!");
+    while (1)
+    {
+      delay(1000);
+    }
+  }
+
+  Serial.print("Connected to ");
+  Serial.println(WiFi.localIP());
+  return true;
+}
+
+// Initialize SD card
+void initSDCard()
+{
+  Serial.println("Initializing SD card...");
+
+  SD_MMC.setPins(SD_MMC_CLK, SD_MMC_CMD, SD_MMC_D0);
+  if (!SD_MMC.begin("/sdcard", true, true, SDMMC_FREQ_DEFAULT, 5))
+  {
+    Serial.println("Card Mount Failed");
+    return;
+  }
+
+  // Check if file exists
+  if (SD_MMC.exists("/data/datalog.csv"))
+  {
+    Serial.println("datalog.csv exists.");
+  }
+  else
+  {
+    File dataFile = SD_MMC.open("/data/datalog.csv", FILE_WRITE);
+    if (dataFile)
+    {
+      Serial.println("datalog.csv created.");
+      dataFile.close();
+    }
+    else
+    {
+      Serial.println("Error creating CSV file.");
+    }
+  }
+}
+
+// Read File from SPIFFS
+String readFileFS(fs::FS &fs, const char *path)
+{
+  Serial.printf("Reading file: %s\r\n", path);
+
+  File file = fs.open(path);
+  if (!file || file.isDirectory())
+  {
+    Serial.println("- failed to open file for reading");
+    return String();
+  }
+
+  String fileContent;
+  while (file.available())
+  {
+    fileContent = file.readStringUntil('\n');
+    break;
+  }
+  return fileContent;
+}
+
+// Write file to SPIFFS
+void writeFileFS(fs::FS &fs, const char *path, const char *message)
+{
+  Serial.printf("Writing file: %s\r\n", path);
+
+  File file = fs.open(path, FILE_WRITE);
+  if (!file)
+  {
+    Serial.println("- failed to open file for writing");
+    return;
+  }
+  if (file.print(message))
+  {
+    Serial.println("- file written");
+  }
+  else
+  {
+    Serial.println("- frite failed");
+  }
+}
+
+// Get local time
 String getLocalTime()
 {
   struct tm timeinfo;
@@ -345,6 +343,80 @@ String getLocalTime()
   }
   char timeStringBuff[50];
   strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", &timeinfo);
-  //Serial.println(timeStringBuff);
+  // Serial.println(timeStringBuff);
   return String(timeStringBuff); // Convert C-style string to String object
 }
+
+// Write data to SD card
+void writeFileSD(String data)
+{
+  // Open file for writing
+  File file = SD_MMC.open("/data/datalog.csv", FILE_APPEND);
+  if (!file)
+  {
+    Serial.println("Failed to open file for writing");    
+  }
+  if (file.print(data))
+  {
+    Serial.println("Data written to file");
+  }
+  else
+  {
+    Serial.println("Write failed");
+  }
+  file.close();
+}
+
+// Read Temperatur and write average to SD card
+void readTemp()
+{
+  unsigned long currentTime = millis();
+
+  // Check for temperature reading interval
+  if (currentTime - lastReadingTime >= readingInterval)
+  {
+    lastReadingTime = currentTime;
+
+    sensors.requestTemperatures(); // Request temperature reading
+    float currentTemp = sensors.getTempCByIndex(0);
+
+    averageTemp = (averageTemp * (iterations - 1) + currentTemp) / iterations;
+    iterations++;
+
+    Serial.print("Current Temp: ");
+    Serial.print(currentTemp);
+    Serial.println(" C - " + getLocalTime());
+  }
+
+  // Check for average temperature update interval
+  if (currentTime - lastAverageTime >= averageInterval)
+  {
+    lastAverageTime = currentTime;
+
+    Serial.print("Average Temp: ");
+    //Serial.print(averageTemp);
+    //Serial.println(" C - " + getLocalTime() + " Past 30 seconds");
+    String stringToSD = String(averageTemp)  + " - " + getLocalTime() + "\n";
+    Serial.println(stringToSD);
+    writeFileSD(stringToSD);
+    
+  }
+}
+
+// Read file from SD card ONLY FOR DEBUGGING
+void readFilSDDEBUG(){
+  File file = SD_MMC.open("/data/datalog.csv");
+  if (!file || file.isDirectory())
+  {
+    Serial.println("Failed to open file for reading");
+    return;
+  }
+
+  Serial.println("Reading from file:");
+  while (file.available())
+  {
+    Serial.write(file.read());
+  }
+  file.close();
+}
+
