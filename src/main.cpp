@@ -82,6 +82,7 @@ String getLocalTime();
 void writeFileSD(String data);
 void readTemp();
 String getSensorData();
+void deleteNetworkSettings();
 
 // Debugging prototypes
 void readFileSDDEBUG();
@@ -107,12 +108,17 @@ void setup()
   Serial.println(ip);
   Serial.println(gateway);
 
-  // Default values for debugging
-  ssid = "E308";
-  pass = "98806829";
-  ip = "192.168.0.111";
-  gateway = "192.168.0.1";
+  // Default values for debugging on school network
+  // ssid = "E308";
+  // pass = "98806829";
+  // ip = "192.168.0.111";
+  // gateway = "192.168.0.1";
   // Remember to delete above default values for production
+
+  // ssid = "HuluBulu";
+  // pass = "Sasser3012";
+  // ip = "192.168.1.111";
+  // gateway = "192.168.1.1";
 
   if (initWiFi())
   {
@@ -121,6 +127,7 @@ void setup()
               { request->send(SPIFFS, "/index.html", "text/html", false); });
     server.serveStatic("/", SPIFFS, "/");
 
+    // Sends JSON data to client
     server.on("/getData", HTTP_GET, [](AsyncWebServerRequest *request)
               {
   String jsonData = getSensorData();
@@ -129,8 +136,45 @@ void setup()
     return;
   }
 
-  request->send(200, "application/json", jsonData); 
-  });
+  request->send(200, "application/json", jsonData); });
+
+    // Delete network settings
+    server.on("/deleteNetwork", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
+      writeFileFS(SPIFFS, ssidPath, "");
+      writeFileFS(SPIFFS, passPath, "");
+      writeFileFS(SPIFFS, ipPath, "");
+      writeFileFS(SPIFFS, gatewayPath, "");
+      request->send(200, "text/plain", "Network settings deleted. ESP will restart.");
+      delay(3000);
+      ESP.restart(); });
+
+    // Delete data log
+    server.on("/deleteDataLog", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
+      deleteFile(SD_MMC, "/data/datalog.csv");      
+      
+      if (SD_MMC.exists("/data/datalog.csv"))
+      {
+        Serial.println("datalog.csv exists.");
+      }
+      else
+      {
+        File dataFile = SD_MMC.open("/data/datalog.csv", FILE_WRITE);
+        if (dataFile)
+        {
+          Serial.println("datalog.csv created.");
+        }
+        else
+        {
+          Serial.println("Error creating CSV file.");
+        }
+          dataFile.close();
+      }
+      
+      
+
+        request->send(200, "text/plain", "Data log deleted."); });
 
     server.begin();
   }
@@ -206,8 +250,8 @@ void setup()
   initSDCard();
 
   // Debugging
-  //resetFileSDDEBUG(); // Reset file for debugging
-  readFileSDDEBUG();  // Read file for debugging
+  // resetFileSDDEBUG(); // Reset file for debugging
+  readFileSDDEBUG(); // Read file for debugging
 
 } // end setup
 
@@ -297,12 +341,12 @@ void initSDCard()
     if (dataFile)
     {
       Serial.println("datalog.csv created.");
-      dataFile.close();
     }
     else
     {
       Serial.println("Error creating CSV file.");
     }
+    dataFile.close();
   }
 }
 
@@ -352,11 +396,12 @@ void writeFileFS(fs::FS &fs, const char *path, const char *message)
 String getLocalTime()
 {
   struct tm timeinfo;
-  if (!getLocalTime(&timeinfo))
+  while (!getLocalTime(&timeinfo))
   {
-    Serial.println("Failed to obtain time");
-    return "Failed to obtain time";
+    vTaskDelay(500);
+    Serial.print(".");
   }
+
   char timeStringBuff[50];
   strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%d %H:%M:%S", &timeinfo);
   return String(timeStringBuff); // Convert C-style string to String object
@@ -426,7 +471,7 @@ String getSensorData()
     return ""; // Or return an error JSON if preferred
   }
 
-JsonDocument doc; // Adjust document size as needed
+  JsonDocument doc; // Adjust document size as needed
 
   JsonArray dataArray = doc.createNestedArray("data");
 
@@ -435,7 +480,7 @@ JsonDocument doc; // Adjust document size as needed
   {
     // Split line into data points (on comma separation) store as string temp and date
     int commaIndex = line.indexOf(',');
-    //split after comma until /n
+    // split after comma until /n
     String tempStr = line.substring(0, commaIndex);
     String dateStr = line.substring(commaIndex + 1, line.length() - 1);
 
@@ -451,6 +496,17 @@ JsonDocument doc; // Adjust document size as needed
   serializeJson(doc, jsonString);
   return jsonString;
 }
+
+// Delete network settings
+void deleteNetworkSettings()
+{
+  SPIFFS.remove(ssidPath);
+  SPIFFS.remove(passPath);
+  SPIFFS.remove(ipPath);
+  SPIFFS.remove(gatewayPath);
+}
+
+// Below this line is for debugging purposes only
 
 // Read file from SD card ONLY FOR DEBUGGING
 void readFileSDDEBUG()
@@ -473,19 +529,7 @@ void readFileSDDEBUG()
 // Reset file from SD card ONLY FOR DEBUGGING
 void resetFileSDDEBUG()
 {
-  File file = SD_MMC.open("/data/datalog.csv", FILE_WRITE);
-  if (!file)
-  {
-    Serial.println("Failed to open file for writing");
-    return;
-  }
-  if (file.print(""))
-  {
-    Serial.println("File cleared");
-  }
-  else
-  {
-    Serial.println("Write failed");
-  }
-  file.close();
+  deleteFile(SD_MMC, "/data/datalog.csv");
+
+  writeFile(SD_MMC, "/data/datalog.csv", "");
 }

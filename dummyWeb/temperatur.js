@@ -1,25 +1,18 @@
 //Create a const button on Id: refreshButton
 const refreshButton = document.getElementById("refreshButton");
-const deleteNetworkBtn = document.getElementById("deleteNetworkBtn");
-const deleteDataLogBtn = document.getElementById("deleteDataLogBtn");
 
 //Add an event listener to the button
 refreshButton.addEventListener("click", function () {
   window.location.reload();
-});
-
-deleteNetworkBtn.addEventListener("click", function () {
-  deleteNetworkSetting();
-});
-
-deleteDataLogBtn.addEventListener("click", function () {
-  deleteDataLog();
+  //end
 });
 
 
+
+window.onload = getData; // Fetch data on page load
 
 function getData() {
-  fetch("/getData") // Replace with your endpoint
+  fetch("/mockData.json") // Replace with your endpoint
     .then((response) => response.json())
     .then((data) => {
       console.log("Fetched data:", data); // Log the parsed data
@@ -49,7 +42,7 @@ function getData() {
           },
         },
         xAxis: {
-          categories: dates,
+          categories: dates,          
           accessibility: {
             description: "Months of the year",
           },
@@ -66,7 +59,7 @@ function getData() {
             text: "Temperature",
             style: {
               color: "white",
-            },
+            },            
           },
           labels: {
             format: "{value}°",
@@ -88,18 +81,19 @@ function getData() {
               fillColor: "white",
               symbol: "circle",
             },
+            
           },
         },
         series: [
-          {
-            name: "Temperature (°C)",
+          { 
+            name: "Temperature (°C)",                             
             data: temperatures,
-            color: "white",
+            color: "white",            
           },
         ],
         legend: {
           itemStyle: {
-            color: "white",
+            color: "white",            
           },
         },
       });
@@ -110,34 +104,7 @@ function getData() {
     });
 }
 
-function deleteNetworkSetting() {
-  fetch("/deleteNetwork") // Replace with your endpoint
-    .then((data) => {
-      console.log("Data deleted:", data);
-      window.location.reload();
-    })
-    .catch((error) => {
-      console.error("Error processing data:", error);
-      // Handle errors here (e.g., display error message)
-    });
-    console.log("Data deleted");
-}
 
 
-function deleteDataLog(){
-  fetch("/deleteDataLog") // Replace with your endpoint
-  .then((data) => {
-    console.log("Data deleted:", data);
-    window.location.reload();
-  })
-  .catch((error) => {
-    console.error("Error processing data:", error);
-    // Handle errors here (e.g., display error message)
-  });
-  console.log("Data deleted");
-  window.location.reload();
-}
 
 
-window.onload = getData; // Fetch data on page load
-//Failed to open file for reading
