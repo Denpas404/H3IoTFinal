@@ -477,7 +477,7 @@ String getSensorData()
     int commaIndex = line.indexOf(',');
     // split after comma until /n
     String tempStr = line.substring(0, commaIndex);
-    String dateStr = line.substring(commaIndex + 1, line.length() - 1);
+    String dateStr = line.substring(commaIndex + 1, line.length() );
 
     // Add data to JSON array
     JsonObject dataObj = dataArray.add<JsonObject>();

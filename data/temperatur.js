@@ -29,7 +29,9 @@ function getData() {
 
       // Loop through each data object
       for (const item of data.data) {
-        temperatures.push(item.temperature);
+        const roundedTemperature = Math.round(item.temperature * 100) / 100;
+        temperatures.push(roundedTemperature);
+        //temperatures.push(item.temperature);
         dates.push(item.date);
       }
 
