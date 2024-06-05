@@ -109,10 +109,10 @@ void setup()
   Serial.println(gateway);
 
   // Default values for debugging on school network
-  // ssid = "E308";
-  // pass = "98806829";
-  // ip = "192.168.0.111";
-  // gateway = "192.168.0.1";
+  ssid = "E308";
+  pass = "98806829";
+  ip = "192.168.0.111";
+  gateway = "192.168.0.1";
   // Remember to delete above default values for production
 
   if (initWiFi())
@@ -299,7 +299,7 @@ bool initWiFi()
     }
   }
 
-  if (!MDNS.begin("esp32"))
+  if (!MDNS.begin("ddev-esp32"))
   {
     Serial.println("Error setting up MDNS responder!");
     while (1)
@@ -452,6 +452,7 @@ void readTemp()
     // Serial.print(averageTemp);
     // Serial.println(" C - " + getLocalTime() + " Past 30 seconds");
     String stringToSD = String(averageTemp) + "," + getLocalTime() + "\n";
+    Serial.println(String(averageTemp));
     Serial.println(stringToSD);
     writeFileSD(stringToSD);
   }
@@ -467,8 +468,7 @@ String getSensorData()
   }
 
   JsonDocument doc; // Adjust document size as needed
-
-  JsonArray dataArray = doc.createNestedArray("data");
+  JsonArray dataArray = doc["data"].to<JsonArray>();
 
   String line;
   while ((line = file.readStringUntil('\n')) != "")
@@ -480,7 +480,8 @@ String getSensorData()
     String dateStr = line.substring(commaIndex + 1, line.length() - 1);
 
     // Add data to JSON array
-    JsonObject dataObj = dataArray.createNestedObject();
+    JsonObject dataObj = dataArray.add<JsonObject>();
+
     dataObj["temperature"] = tempStr.toFloat();
     dataObj["date"] = dateStr;
   }
