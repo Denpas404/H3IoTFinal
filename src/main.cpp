@@ -1,3 +1,10 @@
+/**
+ * @file main.cpp
+ * @brief Main file for the ESP32 data logger project.
+ * @details This file contains the main code for the ESP32 data logger project.
+ * It includes necessary libraries, defines variables, and declares objects for various components.
+ */
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
@@ -12,82 +19,151 @@
 #include "time.h"
 #include <ArduinoJson.h>
 
-const char *ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = 3600;
-const int daylightOffset_sec = 3600;
+// time.h library variables
+const char *ntpServer = "pool.ntp.org"; /**< NTP server address */
+const long gmtOffset_sec = 3600;        /**< GMT offset in seconds */
+const int daylightOffset_sec = 3600;    /**< Daylight offset in seconds */
 
 // Pin definitions for SD card
-#define SD_MMC_CMD 38 // Please do not modify it.
-#define SD_MMC_CLK 39 // Please do not modify it.
-#define SD_MMC_D0 40  // Please do not modify it.
+#define SD_MMC_CMD 38 /**< SD card command pin */
+#define SD_MMC_CLK 39 /**< SD card clock pin */
+#define SD_MMC_D0 40  /**< SD card data pin */
 
 // Data logging
-unsigned long lastReadingTime = 0;
-unsigned long lastAverageTime = 0;
-const unsigned long readingInterval = 5000;  // 5 seconds in milliseconds
-const unsigned long averageInterval = 30000; // 30 seconds in milliseconds
-float averageTemp = 0.0;
-int iterations = 1;
+unsigned long lastReadingTime = 0;       /**< Time of the last temperature reading */
+unsigned long lastAverageTime = 0;       /**< Time of the last average temperature calculation */
+const unsigned long readingInterval = 5000;  /**< Interval between temperature readings (5 seconds) */
+const unsigned long averageInterval = 30000; /**< Interval between average temperature calculations (30 seconds) */
+float averageTemp = 0.0;                 /**< Average temperature */
+int iterations = 1;                      /**< Iterations counter */
 
 // Create AsyncWebServer object on port 80
-AsyncWebServer server(80);
+AsyncWebServer server(80);               /**< Web server object */
 
 // Search for parameter in HTTP POST request
-const char *PARAM_INPUT_1 = "ssid";
-const char *PARAM_INPUT_2 = "pass";
-const char *PARAM_INPUT_3 = "ip";
-const char *PARAM_INPUT_4 = "gateway";
+const char *PARAM_INPUT_1 = "ssid";      /**< Parameter name for SSID */
+const char *PARAM_INPUT_2 = "pass";      /**< Parameter name for password */
+const char *PARAM_INPUT_3 = "ip";        /**< Parameter name for IP address */
+const char *PARAM_INPUT_4 = "gateway";   /**< Parameter name for gateway */
 
 // Variables to save values from HTML form
-String ssid;
-String pass;
-String ip;
-String gateway;
+String ssid;                              /**< SSID */
+String pass;                              /**< Password */
+String ip;                                /**< IP address */
+String gateway;                           /**< Gateway */
 
 // File paths to save input values permanently
-const char *ssidPath = "/ssid.txt";
-const char *passPath = "/pass.txt";
-const char *ipPath = "/ip.txt";
-const char *gatewayPath = "/gateway.txt";
+const char *ssidPath = "/ssid.txt";       /**< SSID file path */
+const char *passPath = "/pass.txt";       /**< Password file path */
+const char *ipPath = "/ip.txt";           /**< IP address file path */
+const char *gatewayPath = "/gateway.txt"; /**< Gateway file path */
 
-IPAddress localIP;
-// IPAddress localIP(192, 168, 1, 200); // hardcoded
-
-// Set your Gateway IP address
-IPAddress localGateway;
-// IPAddress localGateway(192, 168, 1, 1); //hardcoded
-IPAddress subnet(255, 255, 0, 0);
-IPAddress dns(8, 8, 8, 8);
+IPAddress localIP;                       /**< Local IP address */
+IPAddress localGateway;                  /**< Local gateway IP address */
+IPAddress subnet(255, 255, 0, 0);        /**< Subnet mask */
+IPAddress dns(8, 8, 8, 8);               /**< DNS server */
 
 // Timer variables
-unsigned long previousMillis = 0;
-const long interval = 10000; // interval to wait for Wi-Fi connection (milliseconds)
+unsigned long previousMillis = 0;        /**< Previous millis */
+const long interval = 10000;             /**< Interval to wait for Wi-Fi connection (10 seconds) */
 
 // GPIO where the DS18B20 is connected to
-const int oneWireBus = 4;
+const int oneWireBus = 4;                /**< GPIO pin for DS18B20 */
 
 // Setup a oneWire instance to communicate with any OneWire devices
-OneWire oneWire(oneWireBus);
+OneWire oneWire(oneWireBus);             /**< OneWire instance */
 
 // Pass our oneWire reference to Dallas Temperature sensor
-DallasTemperature sensors(&oneWire);
+DallasTemperature sensors(&oneWire);     /**< DallasTemperature sensor instance */
+  
 
-// Prototypes
+/**
+ * @brief Function prototypes for initialization and debugging.
+ * 
+ * This section contains function prototypes for initializing various components and performing debugging tasks.
+ */
+
+/**
+ * @brief Initialize Wi-Fi connection.
+ * @return true if Wi-Fi connection is successful, false otherwise.
+ */
 bool initWiFi();
+
+/**
+ * @brief Initialize SPIFFS (SPI Flash File System).
+ */
 void initSPIFFS();
+
+/**
+ * @brief Initialize SD card.
+ */
 void initSDCard();
+
+/**
+ * @brief Read file from the file system.
+ * 
+ * @param fs The file system to read from.
+ * @param path The path of the file to read.
+ * @return String containing the file content.
+ */
 String readFileFS(fs::FS &fs, const char *path);
+
+/**
+ * @brief Write message to file in the file system.
+ * 
+ * @param fs The file system to write to.
+ * @param path The path of the file to write.
+ * @param message The message to write to the file.
+ */
 void writeFileFS(fs::FS &fs, const char *path, const char *message);
+
+/**
+ * @brief Get local time from NTP server.
+ * 
+ * @return String containing the local time.
+ */
 String getLocalTime();
+
+/**
+ * @brief Write data to SD card.
+ * 
+ * @param data The data to write to the SD card.
+ */
 void writeFileSD(String data);
+
+/**
+ * @brief Read temperature from sensor.
+ */
 void readTemp();
+
+/**
+ * @brief Get sensor data.
+ * 
+ * @return String containing the sensor data.
+ */
 String getSensorData();
+
+/**
+ * @brief Delete network settings.
+ */
 void deleteNetworkSettings();
 
-// Debugging prototypes
+/**
+ * @brief Debugging function to read file from SD card.
+ */
 void readFileSDDEBUG();
+
+/**
+ * @brief Debugging function to reset file on SD card.
+ */
 void resetFileSDDEBUG();
 
+
+/**
+ * @brief Setup function to initialize components and start necessary services.
+ * 
+ * This function initializes serial communication, sensors, SPIFFS, Wi-Fi connection, and sets up routes for HTTP requests.
+ */
 void setup()
 {
   // Serial port for debugging purposes
@@ -121,6 +197,10 @@ void setup()
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
               { request->send(SPIFFS, "/index.html", "text/html", false); });
     server.serveStatic("/", SPIFFS, "/");
+
+    // Route for favicon
+    server.on("/favicon.png", HTTP_GET, [](AsyncWebServerRequest *request)
+              { request->send(SPIFFS, "/favicon.png", "image/x-icon"); });
 
     // Sends JSON data to client
     server.on("/getData", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -244,18 +324,30 @@ void setup()
 
   initSDCard();
 
+  
   // Debugging
   // resetFileSDDEBUG(); // Reset file for debugging
   readFileSDDEBUG(); // Read file for debugging
 
 } // end setup
 
+/**
+ * @brief Main loop function to continuously read temperature.
+ * 
+ * This function calls the readTemp() function repeatedly.
+ */
 void loop()
 {
   readTemp();
 }
 
-// Initialize SPIFFS
+/**
+ * @brief Initialize SPIFFS (SPI Flash File System).
+ * 
+ * This function mounts the SPIFFS file system.
+ * 
+ * @return void
+ */
 void initSPIFFS()
 {
   if (!SPIFFS.begin(true))
@@ -265,7 +357,13 @@ void initSPIFFS()
   Serial.println("SPIFFS mounted successfully");
 }
 
-// Initialize WiFi
+/**
+ * @brief Initialize Wi-Fi connection.
+ * 
+ * This function initializes the Wi-Fi connection with the configured SSID and password.
+ * 
+ * @return bool Returns true if Wi-Fi connection is successful, false otherwise.
+ */
 bool initWiFi()
 {
   if (ssid == "" || ip == "")
@@ -313,7 +411,14 @@ bool initWiFi()
   return true;
 }
 
-// Initialize SD card
+/**
+ * @brief Initialize SD card.
+ * 
+ * This function initializes the SD card and checks if the data log file exists. 
+ * If not, it creates the file.
+ * 
+ * @return void
+ */
 void initSDCard()
 {
   Serial.println("Initializing SD card...");
@@ -345,7 +450,15 @@ void initSDCard()
   }
 }
 
-// Read File from SPIFFS
+/**
+ * @brief Read file from SPIFFS (SPI Flash File System).
+ * 
+ * This function reads the content of the file located at the specified path in SPIFFS.
+ * 
+ * @param fs File system object (SPIFFS).
+ * @param path Path of the file to be read.
+ * @return String Content of the file as a string.
+ */
 String readFileFS(fs::FS &fs, const char *path)
 {
   Serial.printf("Reading file: %s\r\n", path);
@@ -366,7 +479,16 @@ String readFileFS(fs::FS &fs, const char *path)
   return fileContent;
 }
 
-// Write file to SPIFFS
+/**
+ * @brief Write file to SPIFFS (SPI Flash File System).
+ * 
+ * This function writes the specified message to the file located at the specified path in SPIFFS.
+ * 
+ * @param fs File system object (SPIFFS).
+ * @param path Path of the file to be written.
+ * @param message Message to be written to the file.
+ * @return void
+ */
 void writeFileFS(fs::FS &fs, const char *path, const char *message)
 {
   Serial.printf("Writing file: %s\r\n", path);
@@ -387,7 +509,13 @@ void writeFileFS(fs::FS &fs, const char *path, const char *message)
   }
 }
 
-// Get local time
+/**
+ * @brief Get local time.
+ * 
+ * This function retrieves the local time and returns it as a formatted string.
+ * 
+ * @return String Formatted string representing the local time.
+ */
 String getLocalTime()
 {
   struct tm timeinfo;
@@ -402,7 +530,14 @@ String getLocalTime()
   return String(timeStringBuff); // Convert C-style string to String object
 }
 
-// Write data to SD card
+/**
+ * @brief Write data to SD card.
+ * 
+ * This function appends the specified data to the data log file on the SD card.
+ * 
+ * @param data Data to be written to the file.
+ * @return void
+ */
 void writeFileSD(String data)
 {
   // Open file for writing
@@ -422,7 +557,14 @@ void writeFileSD(String data)
   file.close();
 }
 
-// Read Temperatur and write average to SD card
+/**
+ * @brief Read temperature and write average to SD card.
+ * 
+ * This function reads the temperature from the DS18B20 sensor, calculates the average temperature, 
+ * and writes it along with the current local time to the data log file on the SD card.
+ * 
+ * @return void
+ */
 void readTemp()
 {
   unsigned long currentTime = millis();
@@ -437,6 +579,10 @@ void readTemp()
 
     averageTemp = (averageTemp * (iterations - 1) + currentTemp) / iterations;
     iterations++;
+    if (iterations == 6)
+    {
+      iterations = 1;
+    }
 
     Serial.print("Current Temp: ");
     Serial.print(currentTemp);
@@ -458,6 +604,13 @@ void readTemp()
   }
 }
 
+/**
+ * @brief Get sensor data from SD card and return as JSON.
+ * 
+ * This function retrieves sensor data from the data log file on the SD card and returns it as a JSON string.
+ * 
+ * @return String JSON string containing sensor data.
+ */
 String getSensorData()
 {
   File file = SD_MMC.open("/data/datalog.csv");
@@ -477,7 +630,7 @@ String getSensorData()
     int commaIndex = line.indexOf(',');
     // split after comma until /n
     String tempStr = line.substring(0, commaIndex);
-    String dateStr = line.substring(commaIndex + 1, line.length() );
+    String dateStr = line.substring(commaIndex + 1, line.length());
 
     // Add data to JSON array
     JsonObject dataObj = dataArray.add<JsonObject>();
@@ -493,7 +646,11 @@ String getSensorData()
   return jsonString;
 }
 
-// Delete network settings
+/**
+ * @brief Delete network settings.
+ * 
+ * This function deletes the network settings files stored in the SPIFFS file system.
+ */
 void deleteNetworkSettings()
 {
   SPIFFS.remove(ssidPath);
@@ -502,9 +659,12 @@ void deleteNetworkSettings()
   SPIFFS.remove(gatewayPath);
 }
 
-// Below this line is for debugging purposes only
-
-// Read file from SD card ONLY FOR DEBUGGING
+/**
+ * @brief Read file from SD card for debugging purposes.
+ * 
+ * This function reads the contents of the data log file on the SD card and prints them to the serial monitor.
+ * This function is intended for debugging purposes only.
+ */
 void readFileSDDEBUG()
 {
   File file = SD_MMC.open("/data/datalog.csv");
@@ -522,7 +682,12 @@ void readFileSDDEBUG()
   file.close();
 }
 
-// Reset file from SD card ONLY FOR DEBUGGING
+/**
+ * @brief Reset file from SD card for debugging purposes.
+ * 
+ * This function deletes the data log file from the SD card and creates a new empty file with the same name.
+ * This function is intended for debugging purposes only.
+ */
 void resetFileSDDEBUG()
 {
   deleteFile(SD_MMC, "/data/datalog.csv");

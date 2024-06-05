@@ -45,7 +45,7 @@ function getData() {
           type: "spline",
         },
         title: {
-          text: "Monthly Average Temperature",
+          text: "Average Temperature",
           style: {
             color: "white",
           },
