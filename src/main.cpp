@@ -109,10 +109,10 @@ void setup()
   Serial.println(gateway);
 
   // Default values for debugging on school network
-  ssid = "E308";
-  pass = "98806829";
-  ip = "192.168.0.111";
-  gateway = "192.168.0.1";
+  // ssid = "E308";
+  // pass = "98806829";
+  // ip = "192.168.0.111";
+  // gateway = "192.168.0.1";
   // Remember to delete above default values for production
 
   if (initWiFi())
