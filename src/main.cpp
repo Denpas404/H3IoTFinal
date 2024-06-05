@@ -103,10 +103,11 @@ void setup()
   pass = readFileFS(SPIFFS, passPath);
   ip = readFileFS(SPIFFS, ipPath);
   gateway = readFileFS(SPIFFS, gatewayPath);
-  Serial.println(ssid);
-  Serial.println(pass);
-  Serial.println(ip);
-  Serial.println(gateway);
+  // Serial.println(ssid);
+  // Serial.println(pass); 
+  Serial.println("Ip: " + ip);
+  Serial.println("Gateway: " + gateway);
+  
 
   // Default values for debugging on school network
   // ssid = "E308";
@@ -200,7 +201,8 @@ void setup()
           if (p->name() == PARAM_INPUT_1) {
             ssid = p->value().c_str();
             Serial.print("SSID set to: ");
-            Serial.println(ssid);
+            //Serial.println(ssid);
+            Serial.println("***");
             // Write file to save value
             writeFileFS(SPIFFS, ssidPath, ssid.c_str());
           }
@@ -208,7 +210,8 @@ void setup()
           if (p->name() == PARAM_INPUT_2) {
             pass = p->value().c_str();
             Serial.print("Password set to: ");
-            Serial.println(pass);
+            //Serial.println(pass);
+            Serial.println("***");
             // Write file to save value
             writeFileFS(SPIFFS, passPath, pass.c_str());
           }
