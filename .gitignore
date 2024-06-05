@@ -10,3 +10,7 @@ data/pass.txt
 data/ip.txt
 data/ssid.txt
 data/gateway.txt
+
+
+#Ignore ProjectDocs/html folder
+ProjectDocs/html
